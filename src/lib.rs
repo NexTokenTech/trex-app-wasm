@@ -1,7 +1,6 @@
 mod utils;
 pub mod elgamal;
 pub mod elgamal_utils;
-pub mod mt_utils;
 pub mod tx_sign;
 pub mod wallet;
 

@@ -1,5 +1,5 @@
 use crate::elgamal_utils;
-use crate::mt_utils;
+use mt19937;
 use num::bigint::BigInt;
 use encoding::{Encoding, EncoderTrap};
 use encoding::all::UTF_16LE;
@@ -66,7 +66,7 @@ impl PublicKey {
 }
 
 //generate public_key with seed、bit_length、i_confidence
-pub fn generate_pub_key(seed: &BigInt, bit_length: u32, i_confidence: u32) -> (PublicKey,mt_utils::MT19937) {
+pub fn generate_pub_key(seed: &BigInt, bit_length: u32, i_confidence: u32) -> (PublicKey, mt19937::MT19937) {
     /*
     Generates public key K1 (p, g, h) and private key K2 (p, g, x).
 
@@ -83,17 +83,17 @@ pub fn generate_pub_key(seed: &BigInt, bit_length: u32, i_confidence: u32) -> (P
      h = g ^ x mod p
      */
     let key = seed.to_u32_digits();
-    let mut rng: mt_utils::MT19937 = mt_utils::MT19937::new_with_slice_seed(&key.1);
+    let mut rng: mt19937::MT19937 = mt19937::MT19937::new_with_slice_seed(&key.1);
     let val = elgamal_utils::random_prime_bigint(bit_length, i_confidence, &mut rng);
-    let mut rng: mt_utils::MT19937 = mt_utils::MT19937::new_with_slice_seed(&key.1);
+    let mut rng: mt19937::MT19937 = mt19937::MT19937::new_with_slice_seed(&key.1);
     let val1 = elgamal_utils::find_primitive_root_bigint(&val,&mut rng);
-    let mut rng: mt_utils::MT19937 = mt_utils::MT19937::new_with_slice_seed(&key.1);
+    let mut rng: mt19937::MT19937 = mt19937::MT19937::new_with_slice_seed(&key.1);
     let val2 = elgamal_utils::find_h_bigint(&val,&mut rng);
     let pubkey: PublicKey = PublicKey {
         p: val,
         g: val1,
         h: val2,
-        bit_length: bit_length,
+        bit_length,
     };
     println!("p:{}~~~~~~~~g:{}~~~~~~~~~~~h:{}",pubkey.p,pubkey.g,pubkey.h);
     (pubkey,rng)
@@ -115,7 +115,7 @@ pub fn encrypt<R: rand_core::RngCore>(key:&PublicKey,s_plaintext:&str,rng:&mut R
     // i is an integer in z
     for i_code in z{
         // pick random y from (0, p-1) inclusive
-        let y = mt_utils::gen_bigint_range(rng, &elgamal_utils::to_bigint_from_int(0), &(&key.p));
+        let y = elgamal_utils::gen_bigint_range(rng, &elgamal_utils::to_bigint_from_int(0), &(&key.p));
         // c = g^y mod p
         let c = key.g.modpow(&y, &key.p);
         // d = ih^y mod p
