@@ -1,7 +1,6 @@
 use serde_json::json;
 use crate::{alert, tx_sign};
 use crate::elgamal;
-use crate::mt_utils;
 use serde_json::{Value};
 use std::str;
 use num::{ToPrimitive};
@@ -58,7 +57,7 @@ pub fn send_transaction(addr_from:&str, private_key:&str, addr_to:&str, amount:&
             let mut fpubkey = pubkey;
             // if block_interval == 1 then you should only use public_key generate before
             if block_interval == 1 {
-                let mut rng: mt_utils::MT19937 = pubkey_turple.1;
+                let mut rng: mt19937::MT19937 = pubkey_turple.1;
                 let result = elgamal::encrypt(&fpubkey, &msg, &mut rng);
 
                 let release_block_idx = (&last_block["height"].as_u64().unwrap() + block_interval.to_u64().unwrap()).to_string();
@@ -75,7 +74,7 @@ pub fn send_transaction(addr_from:&str, private_key:&str, addr_to:&str, amount:&
                     let new_seed = fpubkey.p + fpubkey.g + fpubkey.h;
                     let pub_tuple = elgamal::generate_pub_key(&new_seed, fpubkey.bit_length, 32);
                     fpubkey = pub_tuple.0;
-                    let mut rng: mt_utils::MT19937 = pub_tuple.1;
+                    let mut rng: mt19937::MT19937 = pub_tuple.1;
                     // if generate the dest block's public_key,then you should encrypt message
                     if idx == block_interval - 2 {
                         let result = elgamal::encrypt(&fpubkey, &msg, &mut rng);

@@ -1,17 +1,74 @@
 #![allow(clippy::unreadable_literal, clippy::upper_case_acronyms)]
 
-use crate::mt_utils;
-use mt_utils::MT19937;
-use num::bigint::BigInt;
-use num::bigint::ToBigInt;
+use mt19937::MT19937;
+use mt19937;
+use num::bigint::{BigInt, BigUint, ToBigInt, Sign};
 use num::traits::{Zero,One};
 use num::Integer;
+
+/** These real versions are due to Kaisuki, 2021/01/07 added */
+pub fn gen_bigint_range<R: rand_core::RngCore>(
+    rng: &mut R,
+    start: &BigInt,
+    stop: &BigInt,
+) -> BigInt {
+    let width: BigInt = stop + 1 - start;
+    let k: u64 = width.bits(); // don't use (n-1) here because n can be 1
+    let mut r: BigInt = getrandbits(rng, k as usize); // 0 <= r < 2**k
+    while r >= width {
+        r = getrandbits(rng, k as usize);
+    }
+    return start + r;
+}
+
+/// Return an integer with k random bits.
+fn getrandbits<R: rand_core::RngCore>(rng: &mut R, k: usize) -> BigInt {
+    if k == 0 {
+        return BigInt::from_slice(Sign::NoSign, &[0]);
+        // return Err(
+        //     vm.new_value_error("number of bits must be greater than zero".to_owned())
+        // );
+    }
+
+    // let mut rng = self.rng.lock();
+    let mut k = k;
+    let mut gen_u32 = |k| {
+        let r = rng.next_u32();
+        if k < 32 {
+            r >> (32 - k)
+        } else {
+            r
+        }
+    };
+
+    if k <= 32 {
+        return gen_u32(k).into();
+    }
+
+    let words = (k - 1) / 32 + 1;
+    let wordarray = (0..words)
+        .map(|_| {
+            let word = gen_u32(k);
+            k = k.wrapping_sub(32);
+            word
+        })
+        .collect::<Vec<_>>();
+
+    let uint = BigUint::new(wordarray);
+    // very unlikely but might as well check
+    let sign = if uint.is_zero() {
+        Sign::NoSign
+    } else {
+        Sign::Plus
+    };
+    BigInt::from_biguint(sign, uint)
+}
 
 #[allow(unused)]
 pub fn random_prime_bigint(
     bit_length: u32,
     i_confidence: u32,
-    r: &mut mt_utils::MT19937,
+    r: &mut mt19937::MT19937,
 ) -> BigInt {
     /*Find a prime number p for elgamal public key.
 
@@ -50,17 +107,17 @@ pub fn random_prime_bigint(
     }
 }
 
-fn gen_prime(bit_length: &u32, r: &mut mt_utils::MT19937) -> BigInt {
+fn gen_prime(bit_length: &u32, r: &mut mt19937::MT19937) -> BigInt {
     let base: BigInt = to_bigint_from_int(2);
     let pow_num_low: BigInt = (bit_length - 2).to_bigint().unwrap();
     let pow_num_high: BigInt = (bit_length - 1).to_bigint().unwrap();
     let low = pow_bigint(&base, &pow_num_low);
     let high = pow_bigint(&base, &pow_num_high);
-    let p: BigInt = mt_utils::gen_bigint_range(r, &low, &high);
+    let p: BigInt = gen_bigint_range(r, &low, &high);
     p
 }
 
-pub fn find_primitive_root_bigint(p: &BigInt,r: &mut mt_utils::MT19937) -> BigInt {
+pub fn find_primitive_root_bigint(p: &BigInt,r: &mut mt19937::MT19937) -> BigInt {
     /*Finds a primitive root for prime p.
     This function was implemented from the algorithm described here:
     http://modular.math.washington.edu/edu/2007/spring/ent/ent-html/node31.html
@@ -88,7 +145,7 @@ pub fn find_primitive_root_bigint(p: &BigInt,r: &mut mt_utils::MT19937) -> BigIn
     loop {
         let range_num_low: BigInt = &one + &one;
         let range_num_high: BigInt = p - &one;
-        g = mt_utils::gen_bigint_range(r, &range_num_low, &range_num_high);
+        g = gen_bigint_range(r, &range_num_low, &range_num_high);
         // g is a primitive root if for all prime factors of p-1, p[i]
         // g^((p-1)/p[i]) (mod p) is not congruent to 1
         if g.modpow(&p2, &p) != one {
@@ -99,11 +156,11 @@ pub fn find_primitive_root_bigint(p: &BigInt,r: &mut mt_utils::MT19937) -> BigIn
     }
 }
 
-pub fn find_h_bigint(p: &BigInt,r: &mut mt_utils::MT19937) -> BigInt {
+pub fn find_h_bigint(p: &BigInt,r: &mut mt19937::MT19937) -> BigInt {
     let one: BigInt = One::one();
     let range_num_low: BigInt = One::one();
     let range_num_high: BigInt = p - &one;
-    let h = mt_utils::gen_bigint_range(r, &range_num_low, &range_num_high);
+    let h = gen_bigint_range(r, &range_num_low, &range_num_high);
     h
 }
 
@@ -123,7 +180,7 @@ pub fn solovay_strassen(num: &BigInt, i_confidence: u32, r: &mut MT19937) -> boo
         let one: BigInt = One::one();
         let high: BigInt = num - &one;
         // choose random a between 1 and n-2
-        let a: BigInt = mt_utils::gen_bigint_range(r, &one, &high);
+        let a: BigInt = gen_bigint_range(r, &one, &high);
 
         let two: BigInt = &one +&one;
         // if a is not relatively prime to n, n is composite
