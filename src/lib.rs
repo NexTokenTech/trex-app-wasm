@@ -1,6 +1,4 @@
 mod utils;
-pub mod elgamal;
-pub mod elgamal_utils;
 pub mod tx_sign;
 pub mod wallet;
 
@@ -27,4 +25,10 @@ pub fn greet() {
 pub fn send_transaction(last_block:&str,public_key:&str,private_key:&str,lock_time:&str,msg:&str)->String{
     let res = wallet::send_transaction(public_key, private_key, public_key, &"1", &msg, lock_time,last_block);
     return res;
+}
+
+#[wasm_bindgen]
+pub fn send_transfer(public_key:&str,private_key:&str,to_user_public_key:&str,amount:&str) -> String{
+    let res = wallet::send_transaction(public_key,private_key,to_user_public_key,amount,&"",&"",&"");
+    return  res;
 }

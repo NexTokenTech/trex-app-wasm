@@ -23,6 +23,7 @@ ecdsa = { version = "0.13.3", features = ["der"] }
 serde_json = "1.0.74"
 encoding = "0.2.33"
 getrandom = { version = "0.2", features = ["js"] }
+elgamal_capsule = { git = "https://github.com/NexTokenTech/elgamal_capsule.git" }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
